@@ -1,0 +1,46 @@
+use crate::syntax::{Main, Macro, Name, StrLit};
+
+grammar;
+
+pub Main: Main<'input> = {
+    "fn" "main" "(" ")" "{"
+        <statements:Statement*>
+    "}" => Main {
+        statements,
+    },
+};
+
+Expr: Macro<'input> = {
+    <name:MacroName> "(" <args:Comma<StrLit>> ")" => Macro {
+        name,
+        args,
+    }
+}
+
+MacroName: Name<'input> = {
+    <l:@L> <name:r#"[a-z]+!"#> <r:@R> => Name {
+        span: l..r,
+        name,
+    }
+}
+
+StrLit: StrLit<'input> = {
+    <l:@L> <s:r#""[^"]*""#> <r:@R> => StrLit {
+        span: l..r,
+        val: &s[1..s.len() - 1],
+    }
+}
+
+Statement: Macro<'input> = {
+    <e:Expr> ";" => e
+}
+
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <t:T?> => match t {
+        None => v,
+        Some(t) => {
+            v.push(t);
+            v
+        }
+    }
+};
